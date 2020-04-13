@@ -1,0 +1,13 @@
+{
+    "name": "janmikes/php-async-playground",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jan Mikeš",
+            "email": "j.mikes@me.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
