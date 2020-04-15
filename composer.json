@@ -12,5 +12,10 @@
     "require": {
         "php": ">=7.2",
         "amphp/parallel": "^1.3"
+    },
+    "autoload": {
+        "files": [
+            "functions.php"
+        ]
     }
 }

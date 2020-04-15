@@ -5,11 +5,11 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Amp\Parallel\Sync\Channel;
 
 return function (Channel $channel): \Generator {
-	$url = yield $channel->receive();
+	$file = yield $channel->receive();
 
-	$data = file_get_contents($url); // Example blocking function
+	sleep(rand(1, 5));
 
-	yield $channel->send($data);
+	yield $channel->send($file . ': 1');
 
 	return 'Any serializable data';
 };

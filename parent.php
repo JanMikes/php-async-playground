@@ -3,23 +3,42 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Amp\Loop;
-use Amp\Parallel\Context;
+use Amp\Parallel\Worker\CallableTask;
+use Amp\Parallel\Worker\DefaultPool;
 
-Loop::run(function () {
-	// Creates a context using Process, or if ext-parallel is installed, Parallel.
-	$context = Context\create(__DIR__ . '/child.php');
+// A variable to store our fetched results
+$results = [];
 
-	$pid = yield $context->start();
+// We can first define tasks and then run them
+$tasks = [
+	new CallableTask('file_get_contents', ['http://php.net']),
+	new CallableTask('file_get_contents', ['https://amphp.org']),
+	new CallableTask('file_get_contents', ['https://github.com']),
+];
 
-	$url = 'https://google.com';
+// Event loop for parallel tasks
+Loop::run(function () use (&$results, $tasks) {
+	$timer = Loop::repeat(200, function () {
+		\printf(".");
+	});
+	Loop::unreference($timer);
 
-	yield $context->send($url);
+	$pool = new DefaultPool;
 
-	$requestData = yield $context->receive();
+	$coroutines = [];
 
-	printf("Received %d bytes from %s\n", \strlen($requestData), $url);
+	foreach ($tasks as $index => $task) {
+		$coroutines[] = Amp\call(function () use ($pool, $index, $task) {
+			$result = yield $pool->enqueue($task);
+			\printf("\nRead from task %d: %d bytes\n", $index, \strlen($result));
+			return $result;
+		});
+	}
 
-	$returnValue = yield $context->join();
+	$results = yield Amp\Promise\all($coroutines);
 
-	printf("Child processes exited with '%s'\n", $returnValue);
+	return yield $pool->shutdown();
 });
+
+echo "\nResult array keys:\n";
+echo \var_export(\array_keys($results), true);
