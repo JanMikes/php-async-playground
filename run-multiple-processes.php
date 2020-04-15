@@ -2,28 +2,38 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+// To pass results via reference
 $results = [];
 
-\Amp\Loop::run(function() use (&$results) {
+// Async needs to run in a loop
+\Amp\Loop::run(static function() use (&$results) {
 	$promises = [];
 
 	for($i=1 ; $i<=10 ; $i++) {
-		$process = new \Amp\Process\Process(['php', 'script.php']);
+		$promises[] = \Amp\call(function() use ($i): \Generator {
+			$process = new \Amp\Process\Process(['php', 'script.php', $i]);
 
-		$promises[] = \Amp\call(function() use ($process): \Generator {
 			yield $process->start();
 
+			// Get data from sub-process stdout
+			// I am not sure if there is other (better) way to pass data from child to parent?
 			$json = yield \Amp\ByteStream\buffer($process->getStdout());
 
 			return json_decode($json);
 		});
 	}
 
+	// Run all promises at once
 	$results = yield \Amp\Promise\all($promises);
 });
 
 $time = microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'];
 
-echo "Script took ${time} seconds to run\n";
+// There is 5 seconds sleep in script.php
+// Running it 10 times and ending in < 6 seconds in total
+\assert($time < 6);
 
-// print_r($results);
+// We will get data from all subprocesses in array
+print_r($results);
+
+echo "Script took ${time} seconds to run\n";

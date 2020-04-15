@@ -1,9 +1,13 @@
 <?php
 
-$rand = rand(1, 9);
-
+// This is to demonstrate that parent script will run this within 5-6 seconds even when running in parallel
 sleep(5);
 
-$json = json_encode(['rand' => $rand]);
+$processIndex = $argv[1];
 
-fwrite(STDOUT, $json);
+$data = [
+	'process_index' => $processIndex,
+	'rand' => random_int(1, 9),
+];
+
+fwrite(STDOUT, json_encode($data));
