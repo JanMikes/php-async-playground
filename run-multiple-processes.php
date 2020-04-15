@@ -2,15 +2,24 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Amp\Process\Process;
+$results = [];
 
-\Amp\Loop::run(function() {
-	$process = new Process(['php', 'script.php']);
+\Amp\Loop::run(function() use (&$results) {
+	$callback = function(\Amp\Process\Process $process) use (&$results): \Generator {
+		yield $process->start();
 
-	yield $process->start();
+		$json = yield \Amp\ByteStream\buffer($process->getStdout());
 
-	echo yield \Amp\ByteStream\buffer($process->getStdout());
+		return json_decode($json);
+	};
 
-	$code = yield $process->join();
-	echo "Process exited with {$code}.\n";
+	$promises = [];
+	for($i=1 ; $i<=10 ; $i++) {
+		$process = new \Amp\Process\Process(['php', 'script.php']);
+		$promises[] = new \Amp\Coroutine($callback($process));
+	}
+
+	$results = yield \Amp\Promise\all($promises);
 });
+
+print_r($results);
