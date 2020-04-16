@@ -11,19 +11,15 @@ $results = [];
 
 	for($i=1 ; $i<=10 ; $i++) {
 		$promises[] = \Amp\call(function() use ($i): \Generator {
-			$process = new \Amp\Process\Process(['php', 'script.php', $i]);
+			$process = new \Amp\Parallel\Context\Process(['script.php', $i]);
 
 			yield $process->start();
 
-			// Get data from sub-process stdout
-			// I am not sure if there is other (better) way to pass data from child to parent?
-			$json = yield \Amp\ByteStream\buffer($process->getStdout());
-
-			return json_decode($json);
+			return yield $process->receive();
 		});
 	}
 
-	// Run all promises at once
+	// Loop awaits results from all promises
 	$results = yield \Amp\Promise\all($promises);
 });
 
